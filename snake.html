@@ -65,7 +65,30 @@
   <button id="snake-down"  aria-label="Down"  style="grid-column: 2; grid-row: 3;"><span>▼</span></button>
 </div>
 
-<script>
+<script><body>
+  <!-- your canvas / HUD / game stuff -->
+
+  <!-- 🎮 Virtual Pad -->
+  <style>
+    /* the .snake-dpad CSS */
+  </style>
+  <div class="snake-dpad">…buttons…</div>
+  <script>
+    // the Virtual Pad JavaScript
+  </script>
+
+  <!-- ✅ Now Option A goes here -->
+  <script>
+    window.setDirection = function(dir) {
+      if (dir === 'up'    && snake.vy !==  1) { snake.vx =  0; snake.vy = -1; }
+      if (dir === 'down'  && snake.vy !== -1) { snake.vx =  0; snake.vy =  1; }
+      if (dir === 'left'  && snake.vx !==  1) { snake.vx = -1; snake.vy =  0; }
+      if (dir === 'right' && snake.vx !== -1) { snake.vx =  1; snake.vy =  0; }
+    };
+  </script>
+
+</body>
+
 (() => {
   const normalize = (dir) => {
     const d = String(dir || '').toLowerCase();
@@ -159,15 +182,7 @@
   document.addEventListener('touchend',   onTouchEnd,   { passive: false });
 
 })();
-</script>// Put this in your existing game code:
-window.setDirection = function(dir) {
-  // dir is 'up' | 'down' | 'left' | 'right'
-  // Example wiring:
-  if (dir === 'up'    && snake.vy !==  1) { snake.vx =  0; snake.vy = -1; }
-  if (dir === 'down'  && snake.vy !== -1) { snake.vx =  0; snake.vy =  1; }
-  if (dir === 'left'  && snake.vx !==  1) { snake.vx = -1; snake.vy =  0; }
-  if (dir === 'right' && snake.vx !== -1) { snake.vx =  1; snake.vy =  0; }
-};
+</script>/
 
 <!-- ===== End Virtual D-Pad ===== -->
 
