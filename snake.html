@@ -1,1 +1,135 @@
-<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Snake · Offline</title><style>html,body{height:100%;margin:0}body{background:#111;color:#eee;font:16px system-ui,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}#wrap{position:relative}canvas{background:#000;box-shadow:0 0 0 2px #222;image-rendering:pixelated}#hud{position:absolute;inset:8px auto auto 8px;background:rgba(0,0,0,.35);padding:6px 8px;border-radius:6px;font-weight:600;backdrop-filter:blur(2px)}#hud span{display:inline-block;min-width:40px;text-align:right}#controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}button{background:#1f6feb;border:0;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}button:active{transform:translateY(1px)}#msg{opacity:.9}</style><div id=wrap><canvas id=c width=400 height=400></canvas><div id=hud>Score <span id=s>0</span> · Best <span id=hi>0</span></div></div><div id=controls><button id=restart title="R">Restart</button><button id=pause title="Space/P">Pause</button><span id=msg></span></div><script>"use strict";const C=document.getElementById("c"),X=C.getContext("2d");const S=20,N=C.width/S;let snake,dir,queued,food,score,best,loop,spd=120,paused=false,dead=false;const SKEY="snakeHS_v1";best=+localStorage.getItem(SKEY)||0;document.getElementById("hi").textContent=best;function rndCell(){return Math.floor(Math.random()*N)}function placeFood(){do{food={x:rndCell(),y:rndCell()}}while(snake.some(p=>p.x==food.x&&p.y==food.y))}function reset(){snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};queued=null;score=0;dead=false;paused=false;document.getElementById("s").textContent=score;document.getElementById("msg").textContent="Use arrows/WASD. P to pause.";placeFood();if(loop)clearInterval(loop);loop=setInterval(tick,spd);draw()}function tick(){if(paused||dead)return;const nd=queued||dir;queued=null;const head={x:(snake[0].x+nd.x+N)%N,y:(snake[0].y+nd.y+N)%N};if(snake.some(p=>p.x==head.x&&p.y==head.y)){dead=true;document.getElementById("msg").textContent="Game over — press Restart (R)";draw();return}snake.unshift(head);if(head.x==food.x&&head.y==food.y){score++;document.getElementById("s").textContent=score;placeFood();if(score>best){best=score;localStorage.setItem(SKEY,best);document.getElementById("hi").textContent=best}}else{snake.pop()}dir=nd;draw()}function draw(){X.clearRect(0,0,C.width,C.height);X.fillStyle="#0a0";X.fillRect(food.x*S,food.y*S,S,S);X.fillStyle="#6cf";snake.forEach((p,i)=>{X.globalAlpha=i?0.9:1;X.fillRect(p.x*S,p.y*S,S,S)});X.globalAlpha=1;if(paused){X.fillStyle="rgba(0,0,0,.5)";X.fillRect(0,0,C.width,C.height);X.fillStyle="#fff";X.font="bold 28px system-ui,Segoe UI";X.textAlign="center";X.fillText("PAUSED",C.width/2,C.height/2)}}function setDir(nx,ny){if(dead)return;const rev=dir.x+nx===0&&dir.y+ny===0;if(!rev)queued={x:nx,y:ny}}addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(["arrowup","w"].includes(k))setDir(0,-1);else if(["arrowdown","s"].includes(k))setDir(0,1);else if(["arrowleft","a"].includes(k))setDir(-1,0);else if(["arrowright","d"].includes(k))setDir(1,0);else if(k==="p"||k===" "){paused=!paused;document.getElementById("msg").textContent=paused?"Paused":""}else if(k==="r")reset()});document.getElementById("restart").onclick=reset;document.getElementById("pause").onclick=()=>{paused=!paused;document.getElementById("msg").textContent=paused?"Paused":""};let touch=null;C.addEventListener("touchstart",e=>{touch=e.changedTouches[0]});C.addEventListener("touchend",e=>{if(!touch)return;const t=e.changedTouches[0];const dx=t.clientX-touch.clientX,dy=t.clientY-touch.clientY;if(Math.abs(dx)>10||Math.abs(dy)>10){if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy))}touch=null});reset();</script></html>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Snake · Offline</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#111;color:#eee;font:16px system-ui,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+  #wrap{position:relative}
+  canvas{background:#000;box-shadow:0 0 0 2px #222;image-rendering:pixelated}
+  #hud{position:absolute;inset:8px auto auto 8px;background:rgba(0,0,0,.35);padding:6px 8px;border-radius:6px;font-weight:600;backdrop-filter:blur(2px)}
+  #hud span{display:inline-block;min-width:40px;text-align:right}
+  #controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{background:#1f6feb;border:0;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+  button:active{transform:translateY(1px)}
+  #msg{opacity:.9}
+
+  /* Added: link styled like a button for Back to Index */
+  a.btn{
+    background:#1f6feb;
+    color:#fff;
+    padding:6px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block
+  }
+  a.btn:active{transform:translateY(1px)}
+</style>
+
+<div id="wrap">
+  <canvas id="c" width="400" height="400"></canvas>
+  <div id="hud">Score <span id="s">0</span> · Best <span id="hi">0</span></div>
+</div>
+
+<div id="controls">
+  <!-- Added: Back to Index link -->
+  <a class="btn" href="index.html#snake" title="Back to Index">← Back to Index</a>
+
+  <button id="restart" title="R">Restart</button>
+  <button id="pause" title="Space/P">Pause</button>
+  <span id="msg"></span>
+</div>
+
+<script>
+"use strict";
+const C=document.getElementById("c"),X=C.getContext("2d");
+const S=20,N=C.width/S;
+let snake,dir,queued,food,score,best,loop,spd=120,paused=false,dead=false;
+const SKEY="snakeHS_v1";
+best=+localStorage.getItem(SKEY)||0;
+document.getElementById("hi").textContent=best;
+
+function rndCell(){return Math.floor(Math.random()*N)}
+function placeFood(){do{food={x:rndCell(),y:rndCell()}}while(snake.some(p=>p.x==food.x&&p.y==food.y))}
+
+function reset(){
+  snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  dir={x:1,y:0}; queued=null; score=0; dead=false; paused=false;
+  document.getElementById("s").textContent=score;
+  document.getElementById("msg").textContent="Use arrows/WASD. P to pause.";
+  placeFood();
+  if(loop)clearInterval(loop);
+  loop=setInterval(tick,spd);
+  draw()
+}
+
+function tick(){
+  if(paused||dead)return;
+  const nd=queued||dir; queued=null;
+  const head={x:(snake[0].x+nd.x+N)%N,y:(snake[0].y+nd.y+N)%N};
+  if(snake.some(p=>p.x==head.x&&p.y==head.y)){
+    dead=true;
+    document.getElementById("msg").textContent="Game over — press Restart (R)";
+    draw(); return
+  }
+  snake.unshift(head);
+  if(head.x==food.x&&head.y==food.y){
+    score++; document.getElementById("s").textContent=score; placeFood();
+    if(score>best){best=score; localStorage.setItem(SKEY,best); document.getElementById("hi").textContent=best}
+  }else{ snake.pop() }
+  dir=nd; draw()
+}
+
+function draw(){
+  X.clearRect(0,0,C.width,C.height);
+  X.fillStyle="#0a0"; X.fillRect(food.x*S,food.y*S,S,S);
+  X.fillStyle="#6cf";
+  snake.forEach((p,i)=>{X.globalAlpha=i?0.9:1; X.fillRect(p.x*S,p.y*S,S,S)});
+  X.globalAlpha=1;
+  if(paused){
+    X.fillStyle="rgba(0,0,0,.5)"; X.fillRect(0,0,C.width,C.height);
+    X.fillStyle="#fff"; X.font="bold 28px system-ui,Segoe UI"; X.textAlign="center";
+    X.fillText("PAUSED",C.width/2,C.height/2)
+  }
+}
+
+function setDir(nx,ny){
+  if(dead)return;
+  const rev=dir.x+nx===0&&dir.y+ny===0;
+  if(!rev)queued={x:nx,y:ny}
+}
+
+addEventListener("keydown",e=>{
+  const k=e.key.toLowerCase();
+  if(["arrowup","w"].includes(k))setDir(0,-1);
+  else if(["arrowdown","s"].includes(k))setDir(0,1);
+  else if(["arrowleft","a"].includes(k))setDir(-1,0);
+  else if(["arrowright","d"].includes(k))setDir(1,0);
+  else if(k==="p"||k===" "){
+    paused=!paused; document.getElementById("msg").textContent=paused?"Paused":""
+  }else if(k==="r")reset()
+});
+
+document.getElementById("restart").onclick=reset;
+document.getElementById("pause").onclick=()=>{
+  paused=!paused; document.getElementById("msg").textContent=paused?"Paused":""
+};
+
+let touch=null;
+C.addEventListener("touchstart",e=>{touch=e.changedTouches[0]});
+C.addEventListener("touchend",e=>{
+  if(!touch)return;
+  const t=e.changedTouches[0];
+  const dx=t.clientX-touch.clientX,dy=t.clientY-touch.clientY;
+  if(Math.abs(dx)>10||Math.abs(dy)>10){
+    if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);
+    else setDir(0,Math.sign(dy))
+  }
+  touch=null
+});
+
+reset();
+</script>
+</html>
