@@ -5,7 +5,172 @@
 <title>Snake · Offline</title>
 <style>
   html,body{height:100%;margin:0}
-  body{background:#111;color:#eee;font:16px system-ui,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+  body{background:#111;color:#eee;font:16px system-ui,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}<!-- ===== Virtual D-Pad for Snake (Android-friendly) ===== -->
+<style>
+  .snake-dpad {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    width: 168px;
+    height: 168px;
+    display: grid;
+    grid-template-columns: 56px 56px 56px;
+    grid-template-rows: 56px 56px 56px;
+    gap: 0.0rem;
+    z-index: 9999;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .snake-dpad button {
+    touch-action: manipulation;        /* avoid 300ms delay & unwanted gestures */
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 16px;
+    outline: none;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .snake-dpad button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  /* Invisible spacers so the pad looks like a cross */
+  .snake-dpad .spacer { background: transparent; box-shadow: none; }
+  /* Bigger hit area on Android */
+  .snake-dpad button { padding: 0; }
+  .snake-dpad button span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 56px;
+  }
+
+  /* Optional: keep the pad from overlapping notch/home bar */
+  @supports (env(safe-area-inset-bottom)) {
+    .snake-dpad { bottom: calc(1rem + env(safe-area-inset-bottom)); }
+  }
+
+  /* Prevent the page from scrolling when swiping to steer */
+  html, body { overscroll-behavior: none; }
+</style>
+
+<div class="snake-dpad" aria-label="Snake controls" role="group">
+  <button id="snake-up"    aria-label="Up"    style="grid-column: 2; grid-row: 1;"><span>▲</span></button>
+  <button class="spacer"   style="grid-column: 1; grid-row: 2;"></button>
+  <button id="snake-left"  aria-label="Left"  style="grid-column: 1; grid-row: 2;"><span>◀</span></button>
+  <button id="snake-right" aria-label="Right" style="grid-column: 3; grid-row: 2;"><span>▶</span></button>
+  <button class="spacer"   style="grid-column: 3; grid-row: 2;"></button>
+  <button id="snake-down"  aria-label="Down"  style="grid-column: 2; grid-row: 3;"><span>▼</span></button>
+</div>
+
+<script>
+(() => {
+  const normalize = (dir) => {
+    const d = String(dir || '').toLowerCase();
+    if (['up','down','left','right'].includes(d)) return d;
+    return null;
+  };
+
+  // Sends to your game in two ways:
+  // 1) Calls window.setDirection(dir) if you expose it
+  // 2) Also dispatches a 'snake:direction' event for you to listen to
+  const sendDirection = (dir) => {
+    const n = normalize(dir);
+    if (!n) return;
+    if (typeof window.setDirection === 'function') {
+      try { window.setDirection(n); } catch {}
+    }
+    document.dispatchEvent(new CustomEvent('snake:direction', { detail: { dir: n } }));
+  };
+
+  // Button wiring
+  const byId = (id) => document.getElementById(id);
+  const map = {
+    'snake-up': 'up',
+    'snake-down': 'down',
+    'snake-left': 'left',
+    'snake-right': 'right'
+  };
+
+  Object.keys(map).forEach(id => {
+    const el = byId(id);
+    if (!el) return;
+
+    const handle = (e) => {
+      e.preventDefault();
+      sendDirection(map[id]);
+    };
+
+    // Touch & mouse
+    el.addEventListener('touchstart', handle, { passive: false });
+    el.addEventListener('mousedown', handle);
+  });
+
+  // Keyboard fallback (useful on desktop testing)
+  window.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k === 'ArrowUp' || k === 'w' || k === 'W')  { e.preventDefault(); sendDirection('up'); }
+    if (k === 'ArrowDown' || k === 's' || k === 'S'){ e.preventDefault(); sendDirection('down'); }
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A'){ e.preventDefault(); sendDirection('left'); }
+    if (k === 'ArrowRight' || k === 'd' || k === 'D'){ e.preventDefault(); sendDirection('right'); }
+  }, { passive: false });
+
+  // Swipe gestures anywhere on the page
+  let startX = 0, startY = 0, tracking = false;
+
+  const onTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    tracking = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  };
+  const onTouchMove = (e) => {
+    // Prevent browser back/forward swipe or scroll while steering
+    if (tracking) e.preventDefault();
+  };
+  const onTouchEnd = (e) => {
+    if (!tracking) return;
+    tracking = false;
+
+    // Use the last changed touch if available
+    const t = (e.changedTouches && e.changedTouches[0]) || null;
+    if (!t) return;
+
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const min = 24; // minimum pixels to count as a swipe
+
+    if (absX < min && absY < min) return;
+
+    if (absX > absY) {
+      sendDirection(dx > 0 ? 'right' : 'left');
+    } else {
+      sendDirection(dy > 0 ? 'down' : 'up');
+    }
+  };
+
+  // Attach to the whole document for easy swipes
+  document.addEventListener('touchstart', onTouchStart, { passive: false });
+  document.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  document.addEventListener('touchend',   onTouchEnd,   { passive: false });
+
+})();
+</script>// Put this in your existing game code:
+window.setDirection = function(dir) {
+  // dir is 'up' | 'down' | 'left' | 'right'
+  // Example wiring:
+  if (dir === 'up'    && snake.vy !==  1) { snake.vx =  0; snake.vy = -1; }
+  if (dir === 'down'  && snake.vy !== -1) { snake.vx =  0; snake.vy =  1; }
+  if (dir === 'left'  && snake.vx !==  1) { snake.vx = -1; snake.vy =  0; }
+  if (dir === 'right' && snake.vx !== -1) { snake.vx =  1; snake.vy =  0; }
+};
+
+<!-- ===== End Virtual D-Pad ===== -->
+
   #wrap{position:relative}
   canvas{background:#000;box-shadow:0 0 0 2px #222;image-rendering:pixelated}
   #hud{position:absolute;inset:8px auto auto 8px;background:rgba(0,0,0,.35);padding:6px 8px;border-radius:6px;font-weight:600;backdrop-filter:blur(2px)}
